@@ -1,0 +1,39 @@
+{
+  "name": "super-browser",
+  "version": "2.0.0",
+  "description": "Browser agent framework powered by Playwright + local Chrome session",
+  "type": "module",
+  "bin": {
+    "super-browser": "./bin/super-browser.js"
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "main": "./dist/core/index.js",
+  "exports": {
+    ".": "./dist/core/index.js",
+    "./cli": "./dist/cli/index.js",
+    "./daemon": "./dist/daemon/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "daemon": "node --loader ts-node/esm src/daemon.ts",
+    "start": "node dist/daemon.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "commander": "^13.0.0",
+    "playwright-core": "^1.50.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "ts-node": "^10.9.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

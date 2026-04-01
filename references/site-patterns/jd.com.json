@@ -1,0 +1,74 @@
+{
+  "domain": "jd.com",
+  "aliases": ["京东", "JD", "search.jd.com"],
+  "updated": "2026-03-27",
+  "requires_login": false,
+  "preferred_strategy": "dom-first",
+  "url_templates": {
+    "search": "https://search.jd.com/Search?keyword={query}"
+  },
+  "selectors": {
+    "product_list": {
+      "selector": "#J_goodsList .gl-item",
+      "purpose": "商品列表项",
+      "verified_at": "2026-03-27",
+      "confidence": "high"
+    },
+    "product_list_alt": {
+      "selector": ".goods-list-v2 li",
+      "purpose": "商品列表项（备选）",
+      "verified_at": "2026-03-27",
+      "confidence": "medium"
+    },
+    "product_title": {
+      "selector": ".p-name em",
+      "purpose": "商品标题",
+      "verified_at": "2026-03-27",
+      "confidence": "high"
+    },
+    "product_price": {
+      "selector": ".p-price i",
+      "purpose": "商品价格",
+      "verified_at": "2026-03-27",
+      "confidence": "high"
+    },
+    "product_shop": {
+      "selector": ".p-shop a",
+      "purpose": "店铺名称",
+      "verified_at": "2026-03-27",
+      "confidence": "high"
+    },
+    "product_link": {
+      "selector": ".p-name a",
+      "purpose": "商品链接",
+      "verified_at": "2026-03-27",
+      "confidence": "high"
+    }
+  },
+  "wait_hints": [
+    {
+      "trigger": "搜索结果页加载",
+      "condition": "等待 #J_goodsList 出现",
+      "timeout": 5000
+    },
+    {
+      "trigger": "懒加载触发",
+      "condition": "滚动到底部后等待更多商品加载",
+      "timeout": 3000
+    }
+  ],
+  "known_traps": [
+    {
+      "description": "首次加载时部分商品区域显示灰色占位块",
+      "trigger": "页面初次加载",
+      "workaround": "等待3-5秒或滚动触发懒加载",
+      "discovered_at": "2026-03-27"
+    },
+    {
+      "description": "商品数据通过内部API加载，但URL不固定",
+      "trigger": "尝试通过网络监控捕获商品API",
+      "workaround": "建议直接DOM提取",
+      "discovered_at": "2026-03-27"
+    }
+  ]
+}

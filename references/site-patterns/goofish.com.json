@@ -1,0 +1,63 @@
+{
+  "domain": "goofish.com",
+  "aliases": ["闲鱼", "闲鱼平台", "Xianyu"],
+  "updated": "2026-03-26",
+  "requires_login": true,
+  "preferred_strategy": "dom-first",
+  "url_templates": {
+    "search": "https://www.goofish.com/search?q={query}",
+    "detail": "https://www.goofish.com/item?id={id}"
+  },
+  "selectors": {
+    "product_list": {
+      "selector": "[class*=feeds-list-container]",
+      "purpose": "商品列表容器",
+      "verified_at": "2026-03-26",
+      "confidence": "high"
+    },
+    "product_card": {
+      "selector": "[class*=feeds-item-wrap]",
+      "purpose": "单个商品卡片",
+      "verified_at": "2026-03-26",
+      "confidence": "high"
+    },
+    "filter_bar": {
+      "selector": "[class*=search-filter-up-container]",
+      "purpose": "搜索筛选栏",
+      "verified_at": "2026-03-26",
+      "confidence": "medium"
+    },
+    "pagination": {
+      "selector": "[class*=search-page-tiny-container]",
+      "purpose": "分页控件",
+      "verified_at": "2026-03-26",
+      "confidence": "medium"
+    }
+  },
+  "wait_hints": [
+    {
+      "trigger": "搜索结果页加载",
+      "condition": "等待商品列表容器出现",
+      "timeout": 5000
+    },
+    {
+      "trigger": "页面初始加载",
+      "condition": "等待 '加载中...' 消失",
+      "timeout": 4000
+    }
+  ],
+  "known_traps": [
+    {
+      "description": "未登录时搜索结果显示'加载中...'，商品不显示",
+      "trigger": "未登录状态下访问搜索结果页",
+      "workaround": "需要先在 Chrome 中登录闲鱼（淘宝账号）",
+      "discovered_at": "2026-03-26"
+    },
+    {
+      "description": "短时间内大量请求触发反爬风控",
+      "trigger": "连续快速发起搜索请求",
+      "workaround": "每次请求间隔 2-3 秒",
+      "discovered_at": "2026-03-26"
+    }
+  ]
+}
