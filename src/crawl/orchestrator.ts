@@ -145,11 +145,15 @@ export async function runCrawl(
         entry.pageType = artifact.pageType;
         state.typeCounters.set(artifact.pageType, typeCount + 1);
         state.totalVisited++;
-        artifacts.push(artifact);
+
+        // Fire callback first (runner writes full artifact to disk here)
         callbacks?.onPageDone?.(artifact);
 
-        // Enqueue discovered links
+        // Enqueue discovered links before trimming
         enqueueLinks(state, artifact, config);
+
+        // Keep only lightweight metadata in memory — full artifact is on disk
+        artifacts.push(trimArtifactForMemory(artifact));
       }
 
       // Stop network monitoring
@@ -210,6 +214,22 @@ function enqueueLinks(state: CrawlState, artifact: PageArtifact, config: SeedCon
     });
     state.queue.push(normalized);
   }
+}
+
+/**
+ * Strip heavy pageState data from an artifact to reduce memory usage.
+ * The full artifact was already written to disk by the onPageDone callback.
+ * Draft-builder reloads from disk via loadPageArtifacts.
+ */
+function trimArtifactForMemory(artifact: PageArtifact): PageArtifact {
+  return {
+    ...artifact,
+    pageState: {
+      page_meta: artifact.pageState.page_meta,
+      interactive_elements: [],
+      context_blocks: [],
+    },
+  };
 }
 
 /**

@@ -25,6 +25,7 @@ import { runSiteCrawl } from '../crawl/runner.js';
 import { runBatchCrawl } from '../crawl/batch-runner.js';
 import { computeStateDiff, summarizeDiff } from '../page-state/state-diff.js';
 import type { PageState } from '../page-state/types.js';
+import { cleanupPage } from '../daemon/runtime.js';
 import * as S from './schemas.js';
 
 // ---- Lifecycle handlers ----
@@ -42,6 +43,10 @@ export async function handleDaemonStatus() {
 }
 
 export async function handleDaemonStop() {
+  // Clean up all page-related state before closing tabs
+  for (const item of listPages()) {
+    cleanupPage(item.pageId);
+  }
   const closed = await closeAllOwnedTabs();
   await disconnect();
   return { stopped: true, closedTabs: closed };
@@ -64,7 +69,7 @@ export async function handleNew(params: Record<string, unknown>) {
 export async function handleClose(params: Record<string, unknown>) {
   const { pageId } = S.CloseParams.parse(params);
   await closeTab(pageId);
-  cleanupPageState(pageId);
+  cleanupPage(pageId);
   return { closed: true };
 }
 

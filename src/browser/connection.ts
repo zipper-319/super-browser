@@ -16,6 +16,17 @@ export interface ConnectionState {
 let state: ConnectionState | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
+/** Callbacks invoked when the browser disconnects unexpectedly. */
+const disconnectListeners: Array<() => void> = [];
+
+/**
+ * Register a callback for browser disconnect events.
+ * Used by daemon/runtime to clean up stale page references.
+ */
+export function onDisconnect(callback: () => void): void {
+  disconnectListeners.push(callback);
+}
+
 /**
  * Connect to user's local Chrome via CDP.
  * Reuses existing connection if available and healthy.
@@ -93,10 +104,43 @@ async function connectWithDiscovery(discovery: DiscoveryResult): Promise<Connect
     if (state) {
       state.status = 'disconnected';
     }
+
+    // Notify listeners (e.g., runtime cleanup)
+    for (const listener of disconnectListeners) {
+      try { listener(); } catch { /* best effort */ }
+    }
+
+    // Schedule auto-reconnect with backoff
+    scheduleReconnect();
   });
 
   console.log(`[connection] Connected to Chrome (port ${discovery.port})`);
   return state;
+}
+
+const RECONNECT_DELAYS = [2_000, 5_000, 10_000, 30_000];
+let reconnectAttempt = 0;
+
+function scheduleReconnect(): void {
+  if (reconnectTimer) return; // already scheduled
+
+  const delay = RECONNECT_DELAYS[Math.min(reconnectAttempt, RECONNECT_DELAYS.length - 1)];
+  console.log(`[connection] Will attempt reconnection in ${delay / 1000}s (attempt ${reconnectAttempt + 1})`);
+
+  reconnectTimer = setTimeout(async () => {
+    reconnectTimer = null;
+    reconnectAttempt++;
+    try {
+      state = null;
+      await connect();
+      reconnectAttempt = 0; // reset on success
+      console.log('[connection] Auto-reconnected to Chrome');
+    } catch (err) {
+      console.warn(`[connection] Auto-reconnect failed: ${err instanceof Error ? err.message : err}`);
+      // Schedule next attempt with backoff
+      scheduleReconnect();
+    }
+  }, delay);
 }
 
 /**
@@ -113,6 +157,13 @@ export async function ensureConnected(): Promise<ConnectionState> {
       state.status = 'disconnected';
     }
   }
+
+  // Cancel auto-reconnect timer if pending
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+  reconnectAttempt = 0;
 
   // Try reconnecting
   console.log('[connection] Attempting reconnection...');

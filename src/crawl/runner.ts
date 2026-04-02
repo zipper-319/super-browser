@@ -90,7 +90,9 @@ export async function runSiteCrawl(options: RunOptions): Promise<RunResult> {
     checkpointInterval: 5,
   });
 
-  const artifacts = mergeArtifacts(existingArtifacts, currentArtifacts);
+  // Always reload full artifacts from disk (in-memory copies are trimmed for memory)
+  const diskArtifacts = loadPageArtifacts(outputDir);
+  const artifacts = diskArtifacts.length > 0 ? diskArtifacts : mergeArtifacts(existingArtifacts, currentArtifacts);
   log(`[crawl] Building drafts from ${artifacts.length} page artifacts...`);
   const output = buildDrafts(state, artifacts);
 

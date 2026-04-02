@@ -76,6 +76,35 @@ export function createHttpServer(): http.Server {
           });
           break;
 
+        case '/fill': {
+          const body = await readBody(req);
+          const parsed = body ? JSON.parse(body) : {};
+          result = await handlers.handleFill({
+            pageId: q.target,
+            selector: parsed.selector || q.selector,
+            value: parsed.value ?? q.value ?? '',
+          });
+          break;
+        }
+
+        case '/press':
+          result = await handlers.handlePress({
+            pageId: q.target,
+            key: q.key,
+            selector: q.selector,
+          });
+          break;
+
+        case '/select': {
+          const body = JSON.parse(await readBody(req));
+          result = await handlers.handleSelect({
+            pageId: q.target,
+            selector: body.selector || q.selector,
+            values: body.values,
+          });
+          break;
+        }
+
         case '/screenshot':
           result = await handlers.handleScreenshot({ pageId: q.target, file: q.file });
           break;

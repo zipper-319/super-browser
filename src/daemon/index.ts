@@ -12,8 +12,9 @@ import {
   DAEMON_PORT_FILE,
 } from '../rpc/protocol.js';
 import { connect } from '../browser/connection.js';
-import { createHttpServer } from './http/router.js';
-import * as handlers from './handlers.js';
+import { createHttpServer } from '../server/router.js';
+import { initRuntime } from './runtime.js';
+import * as handlers from '../server/handlers.js';
 
 export function registerDaemonMethods(rpc: RpcServer): void {
   rpc.method('daemon.status', handlers.handleDaemonStatus);
@@ -36,6 +37,9 @@ export function registerDaemonMethods(rpc: RpcServer): void {
   rpc.method('scroll', handlers.handleScroll);
   rpc.method('screenshot', handlers.handleScreenshot);
   rpc.method('upload', handlers.handleUpload);
+  rpc.method('fill', handlers.handleFill);
+  rpc.method('press', handlers.handlePress);
+  rpc.method('select', handlers.handleSelect);
   rpc.method('info', handlers.handleInfo);
   rpc.method('pages', handlers.handlePages);
 
@@ -68,6 +72,8 @@ export function registerDaemonMethods(rpc: RpcServer): void {
 }
 
 export async function runDaemon(): Promise<void> {
+  initRuntime();
+
   const rpc = new RpcServer();
   registerDaemonMethods(rpc);
 
