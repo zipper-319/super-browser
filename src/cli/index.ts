@@ -20,6 +20,14 @@ function fail(message: string, exitCode = 1): never {
   process.exit(exitCode);
 }
 
+function printHelpfulError(message: string): void {
+  const lower = message.toLowerCase();
+  if (lower.includes('chrome debugging port') || lower.includes('cdp')) {
+    process.stderr.write('Hint: run `super-browser doctor` for a connection diagnosis.\n');
+    process.stderr.write('Hint: on Windows, if Chrome is already open, fully close it and relaunch with `chrome.exe --remote-debugging-port=9222`.\n');
+  }
+}
+
 async function call(method: string, params?: Record<string, unknown>, timeout?: number): Promise<unknown> {
   const running = await isDaemonRunning();
   if (!running) {
@@ -30,6 +38,7 @@ async function call(method: string, params?: Record<string, unknown>, timeout?: 
   if (isErrorResponse(response)) {
     const exitCode = exitCodeMap[response.error.code] ?? 1;
     process.stderr.write(`Error: ${response.error.message}\n`);
+    printHelpfulError(response.error.message);
     output(response.error);
     process.exit(exitCode);
   }
@@ -88,6 +97,12 @@ function configureProgram(): void {
     .description('Stop daemon gracefully')
     .action(async () => {
       output(await call('daemon.stop'));
+    });
+
+  program.command('doctor')
+    .description('Diagnose daemon and Chrome/CDP connection state')
+    .action(async () => {
+      output(await call('doctor'));
     });
 
   program.command('new')

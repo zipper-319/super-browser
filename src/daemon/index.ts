@@ -18,6 +18,7 @@ import * as handlers from '../server/handlers.js';
 
 export function registerDaemonMethods(rpc: RpcServer): void {
   rpc.method('daemon.status', handlers.handleDaemonStatus);
+  rpc.method('doctor', handlers.handleDoctor);
   rpc.method('daemon.stop', async () => {
     const result = await handlers.handleDaemonStop();
     setTimeout(() => {

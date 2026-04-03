@@ -51,20 +51,23 @@ node ./bin/super-browser.js --help
 
 `super-browser` expects to connect to a real Chrome session through CDP.
 
+Normal usage does not require manually starting the daemon. Business commands such as `new`, `page-state`, `decision execute`, and `crawl` automatically start and reuse the background daemon when needed.
+
 Example on Windows:
 
 ```powershell
 chrome.exe --remote-debugging-port=9222
 ```
 
-Then start the daemon:
+If commands still cannot connect, run:
 
 ```bash
-super-browser daemon start
-super-browser daemon status
+super-browser doctor
 ```
 
 ## Quick Start
+
+Open a task tab. This command auto-starts the daemon if needed:
 
 Create a task tab:
 
@@ -243,9 +246,50 @@ Run the daemon from source:
 npm run daemon
 ```
 
+## Troubleshooting
+
+If browser commands fail, prefer:
+
+```bash
+super-browser doctor
+```
+
+`doctor` reports:
+
+- whether the daemon is running
+- whether Chrome is connected
+- whether `9222` is serving Chrome DevTools
+- likely root cause
+- suggested recovery commands
+
+Useful advanced commands:
+
+```bash
+super-browser daemon status
+super-browser daemon stop
+```
+
+On Windows, a common failure mode is that Chrome is already open and ignores a new `--remote-debugging-port=9222` flag. In that case:
+
+1. Fully close Chrome
+2. Relaunch it with:
+
+```powershell
+chrome.exe --remote-debugging-port=9222
+```
+
+3. Verify:
+
+```powershell
+Invoke-WebRequest http://127.0.0.1:9222/json/version | Select-Object -Expand Content
+```
+
+4. Retry the browser command or run `super-browser doctor`
+
 ## Notes
 
 - CLI stdout is intended to stay machine-readable JSON.
 - The daemon auto-starts when CLI commands need it.
+- `daemon` commands are primarily for diagnostics and advanced control.
 - `super-browser` should operate on dedicated task tabs rather than taking over the user's existing tabs.
 - The best results come from combining `page-state`, `network`, and the decision layer instead of relying on raw DOM inspection alone.

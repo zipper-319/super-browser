@@ -4,7 +4,8 @@
  * Parameters are validated via Zod schemas (see schemas.ts).
  */
 
-import { ensureConnected, getConnection, disconnect } from '../browser/connection.js';
+import { ensureConnected, getConnection, getLastConnectionError, disconnect } from '../browser/connection.js';
+import { diagnoseChromeConnection } from '../browser/port-discovery.js';
 import { createTab, closeTab, getPage, listPages, closeAllOwnedTabs, pageCount } from '../browser/tab-manager.js';
 import { collectPageState, type CollectOptions } from '../page-state/collector.js';
 import { loadProfile, listProfiles } from '../site-intel/profile-loader.js';
@@ -32,6 +33,7 @@ import * as S from './schemas.js';
 
 export async function handleDaemonStatus() {
   const conn = getConnection();
+  const diagnosis = await diagnoseChromeConnection();
   return {
     running: true,
     pid: process.pid,
@@ -39,6 +41,37 @@ export async function handleDaemonStatus() {
     browserConnected: conn?.status === 'connected',
     chromePort: conn?.chromePort ?? null,
     pageCount: pageCount(),
+    chromeReachable: diagnosis.discovered !== null,
+    cdpVersionEndpointReachable: diagnosis.defaultPortHasChrome
+      || (diagnosis.discovered?.port === diagnosis.envPort && diagnosis.envPortReachable),
+    connectionError: getLastConnectionError(),
+    recommendedAction: diagnosis.issue === 'ok' ? null : diagnosis.recommendedAction,
+    suggestedCommands: diagnosis.issue === 'ok' ? [] : diagnosis.suggestedCommands,
+    chromeDiagnosis: diagnosis,
+  };
+}
+
+export async function handleDoctor() {
+  const status = await handleDaemonStatus();
+  const diagnosis = status.chromeDiagnosis;
+
+  return {
+    ok: status.browserConnected,
+    summary: status.browserConnected
+      ? 'Daemon is running and Chrome is connected.'
+      : 'Daemon is running but Chrome is not connected.',
+    daemon: {
+      running: status.running,
+      pid: status.pid,
+      uptime: status.uptime,
+      browserConnected: status.browserConnected,
+      chromePort: status.chromePort,
+      pageCount: status.pageCount,
+    },
+    chrome: diagnosis,
+    connectionError: status.connectionError,
+    recommendedAction: status.recommendedAction,
+    suggestedCommands: status.suggestedCommands,
   };
 }
 

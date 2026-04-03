@@ -4,7 +4,13 @@
  */
 
 import { chromium, type Browser, type BrowserContext } from 'playwright-core';
-import { discoverChromePort, getCdpEndpoint, type DiscoveryResult } from './port-discovery.js';
+import {
+  discoverChromePort,
+  diagnoseChromeConnection,
+  formatChromeConnectionError,
+  getCdpEndpoint,
+  type DiscoveryResult,
+} from './port-discovery.js';
 
 export interface ConnectionState {
   browser: Browser;
@@ -15,6 +21,7 @@ export interface ConnectionState {
 
 let state: ConnectionState | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let lastConnectionError: string | null = null;
 
 /** Callbacks invoked when the browser disconnects unexpectedly. */
 const disconnectListeners: Array<() => void> = [];
@@ -39,12 +46,9 @@ export async function connect(): Promise<ConnectionState> {
   // Discover Chrome port
   const discovery = await discoverChromePort();
   if (!discovery) {
-    throw new Error(
-      'Chrome debugging port not found. Ensure Chrome is running with remote debugging enabled:\n' +
-      '  1. Open chrome://inspect/#remote-debugging\n' +
-      '  2. Check "Allow remote debugging for this browser instance"\n' +
-      '  Or set CHROME_DEBUG_PORT environment variable.',
-    );
+    const diagnosis = await diagnoseChromeConnection();
+    lastConnectionError = formatChromeConnectionError(diagnosis);
+    throw new Error(lastConnectionError);
   }
 
   return connectWithDiscovery(discovery);
@@ -62,6 +66,10 @@ export async function connectToPort(port: number): Promise<ConnectionState> {
  */
 export function getConnection(): ConnectionState | null {
   return state;
+}
+
+export function getLastConnectionError(): string | null {
+  return lastConnectionError;
 }
 
 /**
@@ -86,7 +94,13 @@ async function connectWithDiscovery(discovery: DiscoveryResult): Promise<Connect
   const endpoint = await getCdpEndpoint(discovery.port, discovery.wsPath);
 
   console.log(`[connection] Connecting to Chrome via CDP at port ${discovery.port}...`);
-  const browser = await chromium.connectOverCDP(endpoint);
+  let browser: Browser;
+  try {
+    browser = await chromium.connectOverCDP(endpoint);
+  } catch (error) {
+    lastConnectionError = `Chrome was discovered on port ${discovery.port}, but CDP connection failed: ${error instanceof Error ? error.message : String(error)}`;
+    throw error;
+  }
   const contexts = browser.contexts();
   // Use the first existing context (user's browsing session) or create one
   const context = contexts.length > 0 ? contexts[0] : await browser.newContext();
@@ -97,6 +111,7 @@ async function connectWithDiscovery(discovery: DiscoveryResult): Promise<Connect
     chromePort: discovery.port,
     status: 'connected',
   };
+  lastConnectionError = null;
 
   // Listen for disconnection
   browser.on('disconnected', () => {

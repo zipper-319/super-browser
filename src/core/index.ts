@@ -10,13 +10,19 @@ export {
   disconnect,
   ensureConnected,
   getConnection,
+  getLastConnectionError,
   onDisconnect,
   type ConnectionState,
 } from '../browser/connection.js';
 export {
   discoverChromePort,
+  diagnoseChromeConnection,
+  formatChromeConnectionError,
   getCdpEndpoint,
   type DiscoveryResult,
+  type ChromeConnectionDiagnosis,
+  type ChromeConnectionIssue,
+  type DevToolsActivePortProbe,
 } from '../browser/port-discovery.js';
 export {
   createTab,

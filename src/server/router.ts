@@ -27,6 +27,10 @@ export function createHttpServer(): http.Server {
           result = await handlers.handleDaemonStatus();
           break;
 
+        case '/doctor':
+          result = await handlers.handleDoctor();
+          break;
+
         case '/targets':
           result = (await handlers.handlePages()).pages;
           break;
