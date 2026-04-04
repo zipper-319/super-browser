@@ -19,6 +19,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
+    "test": "npm run build && node --test dist/**/*.test.js",
     "daemon": "node --loader ts-node/esm src/daemon.ts",
     "start": "node dist/daemon.js"
   },

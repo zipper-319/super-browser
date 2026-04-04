@@ -40,14 +40,23 @@ export interface ChromeConnectionDiagnosis {
   platform: NodeJS.Platform;
   envPort: number | null;
   envPortReachable: boolean;
+  envPortHasChrome: boolean;
   defaultPortReachable: boolean;
   defaultPortHasChrome: boolean;
+  discoveredPortHasChrome: boolean;
   suggestedPort: number;
   devtoolsActivePort: DevToolsActivePortProbe[];
   discovered: DiscoveryResult | null;
   issue: ChromeConnectionIssue;
   recommendedAction: string;
   suggestedCommands: string[];
+}
+
+interface ChromeDiagnosisOptions {
+  platform?: NodeJS.Platform;
+  probePaths?: string[];
+  checkPortOpen?: typeof checkPortOpen;
+  getChromeVersionInfo?: typeof getChromeVersionInfo;
 }
 
 /**
@@ -89,9 +98,16 @@ export async function discoverChromePort(): Promise<DiscoveryResult | null> {
   return null;
 }
 
-export async function diagnoseChromeConnection(): Promise<ChromeConnectionDiagnosis> {
-  const platform = os.platform();
-  const probes = await Promise.all(getDevToolsActivePortPaths().map(probeDevToolsActivePortPath));
+export async function diagnoseChromeConnection(
+  options: ChromeDiagnosisOptions = {},
+): Promise<ChromeConnectionDiagnosis> {
+  const platform = options.platform ?? os.platform();
+  const checkPort = options.checkPortOpen ?? checkPortOpen;
+  const fetchChromeVersionInfo = options.getChromeVersionInfo ?? getChromeVersionInfo;
+  const probePaths = options.probePaths ?? getDevToolsActivePortPaths();
+  const probes = await Promise.all(
+    probePaths.map((pathname) => probeDevToolsActivePortPath(pathname, checkPort)),
+  );
 
   let discovered: DiscoveryResult | null = null;
   const fromProbe = probes.find((probe) => probe.port && probe.reachable);
@@ -100,16 +116,27 @@ export async function diagnoseChromeConnection(): Promise<ChromeConnectionDiagno
   }
 
   const envPort = parseCandidatePort(process.env.CHROME_DEBUG_PORT);
-  const envPortReachable = envPort != null ? await checkPortOpen(envPort) : false;
-  if (!discovered && envPort != null && envPortReachable) {
+  const envPortReachable = envPort != null ? await checkPort(envPort) : false;
+  const envPortHasChrome = envPortReachable && envPort != null
+    ? !!(await fetchChromeVersionInfo(envPort))
+    : false;
+  if (!discovered && envPort != null && envPortHasChrome) {
     discovered = { port: envPort, wsPath: null };
   }
 
-  const defaultPortReachable = await checkPortOpen(9222);
-  const defaultPortHasChrome = defaultPortReachable ? !!(await getChromeVersionInfo(9222)) : false;
+  const defaultPortReachable = await checkPort(9222);
+  const defaultPortHasChrome = defaultPortReachable ? !!(await fetchChromeVersionInfo(9222)) : false;
   if (!discovered && defaultPortHasChrome) {
     discovered = { port: 9222, wsPath: null };
   }
+
+  const discoveredPortHasChrome = discovered
+    ? discovered.port === envPort
+      ? envPortHasChrome
+      : discovered.port === 9222
+        ? defaultPortHasChrome
+        : !!(await fetchChromeVersionInfo(discovered.port))
+    : false;
 
   const hasStaleProbe = probes.some((probe) => probe.exists && probe.port != null && !probe.reachable);
   const reachableCandidatePort = envPortReachable || defaultPortReachable || probes.some((probe) => probe.reachable);
@@ -129,8 +156,10 @@ export async function diagnoseChromeConnection(): Promise<ChromeConnectionDiagno
     platform,
     envPort,
     envPortReachable,
+    envPortHasChrome,
     defaultPortReachable,
     defaultPortHasChrome,
+    discoveredPortHasChrome,
     suggestedPort: envPort ?? 9222,
     devtoolsActivePort: probes,
     discovered,
@@ -242,13 +271,16 @@ function getDevToolsActivePortPaths(): string[] {
   return paths;
 }
 
-async function probeDevToolsActivePortPath(pathname: string): Promise<DevToolsActivePortProbe> {
+async function probeDevToolsActivePortPath(
+  pathname: string,
+  checkPort: typeof checkPortOpen = checkPortOpen,
+): Promise<DevToolsActivePortProbe> {
   try {
     const content = fs.readFileSync(pathname, 'utf-8').trim();
     const lines = content.split('\n');
     const port = parseCandidatePort(lines[0]);
     const wsPath = lines[1] || null;
-    const reachable = port != null ? await checkPortOpen(port) : false;
+    const reachable = port != null ? await checkPort(port) : false;
 
     return {
       path: pathname,
@@ -291,6 +323,7 @@ function recommendedActionForIssue(
   port: number,
 ): string {
   const isWindows = platform === 'win32';
+  const isMac = platform === 'darwin';
 
   switch (issue) {
     case 'ok':
@@ -298,6 +331,8 @@ function recommendedActionForIssue(
     case 'stale-devtools-port-file':
       return isWindows
         ? `Close Chrome fully, relaunch it with --remote-debugging-port=${port}, then retry the command.`
+        : isMac
+          ? `Relaunch Google Chrome with remote debugging enabled via the app launcher command below, then retry the command.`
         : `Relaunch Chrome with --remote-debugging-port=${port}, then retry the command.`;
     case 'port-open-not-chrome':
       return `Verify that port ${port} is serving Chrome DevTools by checking http://127.0.0.1:${port}/json/version.`;
@@ -305,6 +340,8 @@ function recommendedActionForIssue(
     default:
       return isWindows
         ? `Start Chrome with --remote-debugging-port=${port}. If Chrome is already open, fully close it first so the flag is applied.`
+        : isMac
+          ? `Start Google Chrome with remote debugging enabled via the app launcher command below, then retry the command.`
         : `Start Chrome with --remote-debugging-port=${port}, then retry the command.`;
   }
 }
@@ -315,6 +352,7 @@ function suggestedCommandsForIssue(
   port: number,
 ): string[] {
   const isWindows = platform === 'win32';
+  const isMac = platform === 'darwin';
 
   if (issue === 'ok') return [];
 
@@ -330,6 +368,14 @@ function suggestedCommandsForIssue(
     }
 
     return commands;
+  }
+
+  if (isMac) {
+    return [
+      `open -a "Google Chrome" --args --remote-debugging-port=${port}`,
+      `curl http://127.0.0.1:${port}/json/version`,
+      'super-browser daemon status',
+    ];
   }
 
   return [

@@ -42,8 +42,7 @@ export async function handleDaemonStatus() {
     chromePort: conn?.chromePort ?? null,
     pageCount: pageCount(),
     chromeReachable: diagnosis.discovered !== null,
-    cdpVersionEndpointReachable: diagnosis.defaultPortHasChrome
-      || (diagnosis.discovered?.port === diagnosis.envPort && diagnosis.envPortReachable),
+    cdpVersionEndpointReachable: diagnosis.discoveredPortHasChrome,
     connectionError: getLastConnectionError(),
     recommendedAction: diagnosis.issue === 'ok' ? null : diagnosis.recommendedAction,
     suggestedCommands: diagnosis.issue === 'ok' ? [] : diagnosis.suggestedCommands,
