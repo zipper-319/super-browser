@@ -1,11 +1,11 @@
 ---
 name: super-browser
-description: Browser automation through the published `super-browser` CLI against a real local Chrome session. Use whenever the task needs to open a webpage, navigate a site, inspect browser-rendered content, reuse an existing website login state, click through a web flow, upload files, take screenshots, inspect network requests, collect structured page state, generate or execute browser decisions, or crawl a domain.
+description: Browser automation through the published `@pzeda/super-browser` package and its `super-browser` CLI against a real local Chrome session. Use whenever the task needs to open a webpage, navigate a site, inspect browser-rendered content, reuse an existing website login state, click through a web flow, upload files, take screenshots, inspect network requests, collect structured page state, generate or execute browser decisions, or crawl a domain.
 ---
 
 # super-browser Skill
 
-Use the published `super-browser` package. Do not rely on repository-only scripts or `src/` paths when performing browser work through this skill.
+Use the published `@pzeda/super-browser` package. Do not rely on repository-only scripts or `src/` paths when performing browser work through this skill.
 
 ## Setup
 
@@ -24,13 +24,15 @@ super-browser --version
 If the command is missing, install it:
 
 ```bash
-npm install -g super-browser
+npm install -g @pzeda/super-browser
 ```
+
+This installs the executable as `super-browser`.
 
 If a global install is not appropriate, use:
 
 ```bash
-npx super-browser --help
+npx -y @pzeda/super-browser --help
 ```
 
 ## Standard Rule

@@ -27,10 +27,16 @@ It is designed for agent-style workflows where we want to:
 
 ## Install
 
-If the package has been published:
+Published package:
 
 ```bash
-npm install -g super-browser
+npm install -g @pzeda/super-browser
+```
+
+This installs the CLI command as:
+
+```bash
+super-browser
 ```
 
 From source:
@@ -45,6 +51,12 @@ If you do not want a global install, you can use the local bin:
 
 ```bash
 node ./bin/super-browser.js --help
+```
+
+Or run the published package without a global install:
+
+```bash
+npx -y @pzeda/super-browser --help
 ```
 
 ## Chrome Setup
@@ -197,7 +209,7 @@ import {
   generateCandidates,
   planActions,
   buildDecisionModelInput,
-} from 'super-browser';
+} from '@pzeda/super-browser';
 ```
 
 See the public exports in [src/core/index.ts](./src/core/index.ts).

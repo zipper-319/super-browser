@@ -1,5 +1,5 @@
 {
-  "name": "super-browser",
+  "name": "@pzeda/super-browser",
   "version": "2.0.0",
   "description": "Browser agent framework powered by Playwright + local Chrome session",
   "type": "module",
@@ -8,7 +8,11 @@
   },
   "files": [
     "bin",
-    "dist"
+    "dist",
+    "!dist/**/*.test.d.ts",
+    "!dist/**/*.test.d.ts.map",
+    "!dist/**/*.test.js",
+    "!dist/**/*.test.js.map"
   ],
   "main": "./dist/core/index.js",
   "exports": {
@@ -20,6 +24,9 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "npm run build && node --test dist/**/*.test.js",
+    "release:check": "npm test && npm pack --dry-run",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm test",
     "daemon": "node --loader ts-node/esm src/daemon.ts",
     "start": "node dist/daemon.js"
   },
