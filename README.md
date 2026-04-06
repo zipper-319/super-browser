@@ -59,6 +59,22 @@ Or run the published package without a global install:
 npx -y @pzeda/super-browser --help
 ```
 
+## Install As A Skill
+
+Install the skill from this repository:
+
+```bash
+npx skills add --url https://github.com/zipper-319/super-browser/tree/master/skills/super-browser -g -y
+```
+
+After installation, restart your agent runtime so the skill is loaded.
+
+The skill provides workflow guidance. The actual browser capability comes from the published npm package:
+
+```bash
+npm install -g @pzeda/super-browser
+```
+
 ## Chrome Setup
 
 `super-browser` expects to connect to a real Chrome session through CDP.
